@@ -128,79 +128,6 @@
         ]
       },
       {
-        "id": 3,
-        "title": "User Authentication System",
-        "description": "Implement user authentication with OAuth and email login, including user registration, login, and session management.",
-        "details": "1. Set up authentication middleware on the backend\n2. Implement OAuth2 authentication for Google services\n3. Create email/password authentication flow\n4. Design and implement JWT token-based session management\n5. Create user registration endpoint and form\n6. Implement login endpoint and form\n7. Add password reset functionality\n8. Set up protected routes on both frontend and backend\n9. Implement user profile management\n10. Add logout functionality\n11. Store user preferences and settings",
-        "testStrategy": "Test user registration with valid and invalid inputs. Verify OAuth authentication flow with mock OAuth provider. Test login, logout, and session persistence. Verify JWT token validation and expiration handling. Test password reset flow. Ensure protected routes are properly secured.",
-        "priority": "high",
-        "dependencies": [
-          1,
-          2
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Authentication Backend Setup",
-            "description": "Set up authentication middleware and implement JWT token-based session management on the backend",
-            "dependencies": [],
-            "details": "Implement Express middleware for authentication, create JWT token generation and validation utilities, set up secure cookie handling, implement token refresh mechanism, and configure proper error handling for authentication failures",
-            "status": "pending",
-            "testStrategy": "Test JWT token generation and validation, verify token expiration handling, test middleware with valid and invalid tokens, ensure proper error responses for authentication failures"
-          },
-          {
-            "id": 2,
-            "title": "OAuth2 Integration",
-            "description": "Implement OAuth2 authentication flow for Google services",
-            "dependencies": [
-              "3.1"
-            ],
-            "details": "Set up Google OAuth2 client configuration, implement authorization endpoint, create callback handler, extract user profile information from OAuth response, and handle account linking for existing users",
-            "status": "pending",
-            "testStrategy": "Test OAuth flow with mock OAuth provider, verify user profile extraction, test account linking scenarios, ensure proper error handling for failed OAuth attempts"
-          },
-          {
-            "id": 3,
-            "title": "Email/Password Authentication",
-            "description": "Create email/password authentication flow including registration, login, and password reset functionality",
-            "dependencies": [
-              "3.1"
-            ],
-            "details": "Implement secure password hashing, create user registration endpoint and form, implement login endpoint and form, add email verification process, and develop password reset functionality with secure tokens",
-            "status": "pending",
-            "testStrategy": "Test user registration with valid and invalid inputs, verify password hashing security, test login with correct and incorrect credentials, verify email verification flow, test password reset process"
-          },
-          {
-            "id": 4,
-            "title": "Protected Routes Implementation",
-            "description": "Set up protected routes on both frontend and backend with proper authorization checks",
-            "dependencies": [
-              "3.1",
-              "3.2",
-              "3.3"
-            ],
-            "details": "Implement route protection middleware for backend API endpoints, create frontend route guards using React Router or similar, handle unauthorized access attempts, implement role-based access control if needed, and ensure proper redirection to login page",
-            "status": "pending",
-            "testStrategy": "Test protected routes with authenticated and unauthenticated requests, verify proper redirection behavior, test role-based access scenarios, ensure API endpoints properly reject unauthorized requests"
-          },
-          {
-            "id": 5,
-            "title": "User Profile Management",
-            "description": "Implement user profile management including preferences, settings, and logout functionality",
-            "dependencies": [
-              "3.1",
-              "3.2",
-              "3.3",
-              "3.4"
-            ],
-            "details": "Create user profile page, implement profile update functionality, develop user preferences and settings storage, add logout functionality with proper token invalidation, and implement user account deletion option",
-            "status": "pending",
-            "testStrategy": "Test profile updates with valid and invalid data, verify preferences are correctly stored and retrieved, test logout functionality across multiple devices, ensure proper cleanup of authentication tokens on logout"
-          }
-        ]
-      },
-      {
         "id": 4,
         "title": "Natural Language Input Parser",
         "description": "Develop the AI-powered natural language processing system to parse user text input and extract tasks, due dates, and other metadata.",
@@ -280,8 +207,7 @@
         "testStrategy": "Write unit tests for each API endpoint. Test CRUD operations with valid and invalid inputs. Verify filtering, sorting, and pagination functionality. Test error handling for edge cases. Perform load testing to ensure API can handle expected traffic.",
         "priority": "high",
         "dependencies": [
-          2,
-          3
+          2
         ],
         "status": "pending",
         "subtasks": [
