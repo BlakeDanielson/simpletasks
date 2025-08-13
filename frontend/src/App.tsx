@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { fetchTasks, createTask, toggleTask, deleteTask } from './lib/api'
+import { Layout } from './components/layout/Layout'
 
 type Task = {
   id: number
@@ -38,8 +39,7 @@ function App() {
   }
 
   return (
-    <>
-      <h1>SimpleTasks</h1>
+    <Layout>
       <div style={{ display: 'flex', gap: 8 }}>
         <input
           placeholder="Add a task..."
@@ -57,7 +57,7 @@ function App() {
           </li>
         ))}
       </ul>
-    </>
+    </Layout>
   )
 }
 
