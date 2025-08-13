@@ -1,7 +1,9 @@
-import 'dotenv/config'
-import express from 'express'
+import dotenv from 'dotenv'
+import express, { type Request, type Response } from 'express'
 import cors from 'cors'
-import { PrismaClient } from '../generated/prisma/index.js'
+import { PrismaClient, Prisma } from '../generated/prisma/index.js'
+
+dotenv.config()
 
 const app = express()
 app.use(cors())
@@ -10,12 +12,59 @@ app.use(express.json())
 const prisma = new PrismaClient()
 const PORT = Number(process.env.PORT || 4000)
 
-app.get('/api/tasks', async (_req, res) => {
-  const tasks = await prisma.task.findMany({ orderBy: { createdAt: 'desc' } })
+app.get('/api/tasks', async (req: Request, res: Response) => {
+  const {
+    page = '1',
+    pageSize = '20',
+    completed,
+    dueBefore,
+    dueAfter,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+  } = req.query as Record<string, string>
+
+  const where: Prisma.TaskWhereInput = {}
+  if (typeof completed === 'string') {
+    if (completed === 'true' || completed === 'false') {
+      where.completed = completed === 'true'
+    }
+  }
+  if (dueBefore || dueAfter) {
+    where.dueDate = {}
+    if (dueAfter) {
+      const dt = new Date(dueAfter)
+      if (!isNaN(dt.getTime())) where.dueDate.gte = dt
+    }
+    if (dueBefore) {
+      const dt = new Date(dueBefore)
+      if (!isNaN(dt.getTime())) where.dueDate.lte = dt
+    }
+  }
+
+  const validSortBy = new Set(['createdAt', 'dueDate', 'title', 'completed'])
+  const sortKey = validSortBy.has(String(sortBy)) ? String(sortBy) : 'createdAt'
+  const sortDir: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc'
+
+  const p = Math.max(parseInt(String(page), 10) || 1, 1)
+  const ps = Math.min(Math.max(parseInt(String(pageSize), 10) || 20, 1), 100)
+
+  const [total, tasks] = await Promise.all([
+    prisma.task.count({ where }),
+    prisma.task.findMany({
+      where,
+      orderBy: { [sortKey]: sortDir } as any,
+      skip: (p - 1) * ps,
+      take: ps,
+    }),
+  ])
+
+  res.setHeader('X-Total-Count', String(total))
+  res.setHeader('X-Page', String(p))
+  res.setHeader('X-Page-Size', String(ps))
   res.json(tasks)
 })
 
-app.post('/api/tasks', async (req, res) => {
+app.post('/api/tasks', async (req: Request, res: Response) => {
   const { title, description, dueDate } = req.body
   if (!title || typeof title !== 'string') {
     return res.status(400).json({ error: 'title is required' })
@@ -30,22 +79,28 @@ app.post('/api/tasks', async (req, res) => {
   res.status(201).json(task)
 })
 
-app.put('/api/tasks/:id', async (req, res) => {
+app.put('/api/tasks/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
-  const { title, description, dueDate, completed } = req.body
-  const task = await prisma.task.update({
-    where: { id },
-    data: {
-      title,
-      description,
-      dueDate: dueDate ? new Date(dueDate) : undefined,
-      completed,
-    },
-  })
+  const { title, description, dueDate, completed } = req.body as {
+    title?: string
+    description?: string | null
+    dueDate?: string | null
+    completed?: boolean
+  }
+
+  const data: Prisma.TaskUpdateInput = {}
+  if (title !== undefined) data.title = title
+  if (description !== undefined) data.description = description ?? null
+  if (completed !== undefined) data.completed = completed
+  if (dueDate !== undefined) {
+    data.dueDate = dueDate ? new Date(dueDate) : null
+  }
+
+  const task = await prisma.task.update({ where: { id }, data })
   res.json(task)
 })
 
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
   const id = Number(req.params.id)
   await prisma.task.delete({ where: { id } })
   res.status(204).end()

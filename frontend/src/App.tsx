@@ -15,7 +15,9 @@ function App() {
   const [title, setTitle] = useState('')
 
   useEffect(() => {
-    fetchTasks().then(setTasks).catch(console.error)
+    fetchTasks({ page: 1, pageSize: 20, sortBy: 'createdAt', sortOrder: 'desc' })
+      .then(setTasks)
+      .catch(console.error)
   }, [])
 
   const onAdd = async () => {
