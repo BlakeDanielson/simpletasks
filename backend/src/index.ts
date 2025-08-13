@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import cors from 'cors'
 import { PrismaClient, Prisma } from '../generated/prisma/index.js'
+import OpenAI from 'openai'
 import {
   listQuerySchema,
   parseBody,
@@ -20,6 +21,7 @@ app.use(express.json())
 
 const prisma = new PrismaClient()
 const PORT = Number(process.env.PORT || 4000)
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 app.get('/api/tasks', async (req: Request, res: Response) => {
   const parsed = parseQuery(listQuerySchema, req.query)
@@ -107,16 +109,29 @@ app.post('/api/nlp/parse', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'validation_error', details: parsed.details })
   }
   const { text } = parsed.data
-
-  // Placeholder extraction logic (simple heuristic)
-  // Example: "Do thing tomorrow" → title: "Do thing", dueDate: tomorrow
-  const lower = text.toLowerCase()
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-  const hasTomorrow = lower.includes('tomorrow')
-  const dueDate = hasTomorrow ? tomorrow.toISOString() : null
-
-  const title = text.replace(/\btomorrow\b/i, '').trim()
-  res.json({ title: title || text, description: null, dueDate })
+  // Use OpenAI to extract task fields
+  const prompt = `Extract a single task from the user's input. Return strict JSON with keys: title (string), description (string|null), dueDate (ISO string|null). If no due date is specified, set dueDate to null.
+Input: ${text}`
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You extract structured task data as strict JSON.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0,
+  })
+  const content = completion.choices[0]?.message?.content ?? ''
+  let json: any
+  try {
+    json = JSON.parse(content)
+  } catch {
+    return res.status(502).json({ error: 'nlp_parse_error', message: 'Model returned non-JSON' })
+  }
+  // Basic shape guard
+  if (!json || typeof json.title !== 'string') {
+    return res.status(502).json({ error: 'nlp_parse_error', message: 'Invalid extraction shape' })
+  }
+  res.json({ title: json.title, description: json.description ?? null, dueDate: json.dueDate ?? null })
 })
 
 app.listen(PORT, () => {
