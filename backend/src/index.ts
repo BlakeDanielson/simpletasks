@@ -7,6 +7,7 @@ import {
   parseBody,
   parseQuery,
   taskCreateSchema,
+  nlpInputSchema,
   taskUpdateSchema,
 } from './validation.js'
 import { errorHandler, notFound } from './errors.js'
@@ -97,6 +98,25 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response, next: NextFunct
   } catch (err) {
     next(err)
   }
+})
+
+// Minimal NLP endpoint placeholder (expects client to provide text; server returns parsed shape)
+app.post('/api/nlp/parse', async (req: Request, res: Response) => {
+  const parsed = parseBody(nlpInputSchema, req.body)
+  if (!parsed.ok) {
+    return res.status(400).json({ error: 'validation_error', details: parsed.details })
+  }
+  const { text } = parsed.data
+
+  // Placeholder extraction logic (simple heuristic)
+  // Example: "Do thing tomorrow" → title: "Do thing", dueDate: tomorrow
+  const lower = text.toLowerCase()
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  const hasTomorrow = lower.includes('tomorrow')
+  const dueDate = hasTomorrow ? tomorrow.toISOString() : null
+
+  const title = text.replace(/\btomorrow\b/i, '').trim()
+  res.json({ title: title || text, description: null, dueDate })
 })
 
 app.listen(PORT, () => {

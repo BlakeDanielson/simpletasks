@@ -23,6 +23,16 @@ export const listQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 
+export const nlpInputSchema = z.object({
+  text: z.string().min(1, 'text is required'),
+})
+
+export const parsedTaskSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable(),
+})
+
 export function parseBody<T extends z.ZodTypeAny>(schema: T, body: unknown) {
   const res = schema.safeParse(body)
   if (!res.success) {
