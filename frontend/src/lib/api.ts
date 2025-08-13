@@ -25,6 +25,16 @@ export async function fetchTasks(params?: {
   return res.json()
 }
 
+export async function parseNlp(input: { text: string }) {
+  const res = await fetch(`${API_BASE_URL}/api/nlp/parse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error('Failed to parse NLP input')
+  return res.json() as Promise<{ title: string; description: string | null; dueDate: string | null }>
+}
+
 export async function createTask(input: { title: string; description?: string; dueDate?: string }) {
   const res = await fetch(`${API_BASE_URL}/api/tasks`, {
     method: 'POST',
