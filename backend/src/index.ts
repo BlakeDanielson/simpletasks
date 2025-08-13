@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import express, { type Request, type Response } from 'express'
+import express, { type NextFunction, type Request, type Response } from 'express'
 import cors from 'cors'
 import { PrismaClient, Prisma } from '../generated/prisma/index.js'
 import {
@@ -9,6 +9,7 @@ import {
   taskCreateSchema,
   taskUpdateSchema,
 } from './validation.js'
+import { errorHandler, notFound } from './errors.js'
 
 dotenv.config()
 
@@ -47,23 +48,27 @@ app.get('/api/tasks', async (req: Request, res: Response) => {
   res.json(tasks)
 })
 
-app.post('/api/tasks', async (req: Request, res: Response) => {
+app.post('/api/tasks', async (req: Request, res: Response, next: NextFunction) => {
   const parsed = parseBody(taskCreateSchema, req.body)
   if (!parsed.ok) {
     return res.status(400).json({ error: 'validation_error', details: parsed.details })
   }
   const { title, description, dueDate } = parsed.data
-  const task = await prisma.task.create({
-    data: {
-      title,
-      description: description ?? null,
-      dueDate: dueDate ? new Date(dueDate) : null,
-    },
-  })
-  res.status(201).json(task)
+  try {
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description: description ?? null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+      },
+    })
+    res.status(201).json(task)
+  } catch (err) {
+    next(err)
+  }
 })
 
-app.put('/api/tasks/:id', async (req: Request, res: Response) => {
+app.put('/api/tasks/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id)
   const parsed = parseBody(taskUpdateSchema, req.body)
   if (!parsed.ok) {
@@ -76,19 +81,30 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
   if (description !== undefined) data.description = description ?? null
   if (completed !== undefined) data.completed = completed
   if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null
-
-  const task = await prisma.task.update({ where: { id }, data })
-  res.json(task)
+  try {
+    const task = await prisma.task.update({ where: { id }, data })
+    res.json(task)
+  } catch (err) {
+    next(err)
+  }
 })
 
-app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
+app.delete('/api/tasks/:id', async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id)
-  await prisma.task.delete({ where: { id } })
-  res.status(204).end()
+  try {
+    await prisma.task.delete({ where: { id } })
+    res.status(204).end()
+  } catch (err) {
+    next(err)
+  }
 })
 
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`)
 })
+
+// Not found & error handlers
+app.use(notFound)
+app.use(errorHandler)
 
 

@@ -3,6 +3,7 @@ import express, {} from 'express';
 import cors from 'cors';
 import { PrismaClient, Prisma } from '../generated/prisma/index.js';
 import { listQuerySchema, parseBody, parseQuery, taskCreateSchema, taskUpdateSchema, } from './validation.js';
+import { errorHandler, notFound } from './errors.js';
 dotenv.config();
 const app = express();
 app.use(cors());
@@ -35,22 +36,27 @@ app.get('/api/tasks', async (req, res) => {
     res.setHeader('X-Page-Size', String(pageSize));
     res.json(tasks);
 });
-app.post('/api/tasks', async (req, res) => {
+app.post('/api/tasks', async (req, res, next) => {
     const parsed = parseBody(taskCreateSchema, req.body);
     if (!parsed.ok) {
         return res.status(400).json({ error: 'validation_error', details: parsed.details });
     }
     const { title, description, dueDate } = parsed.data;
-    const task = await prisma.task.create({
-        data: {
-            title,
-            description: description ?? null,
-            dueDate: dueDate ? new Date(dueDate) : null,
-        },
-    });
-    res.status(201).json(task);
+    try {
+        const task = await prisma.task.create({
+            data: {
+                title,
+                description: description ?? null,
+                dueDate: dueDate ? new Date(dueDate) : null,
+            },
+        });
+        res.status(201).json(task);
+    }
+    catch (err) {
+        next(err);
+    }
 });
-app.put('/api/tasks/:id', async (req, res) => {
+app.put('/api/tasks/:id', async (req, res, next) => {
     const id = Number(req.params.id);
     const parsed = parseBody(taskUpdateSchema, req.body);
     if (!parsed.ok) {
@@ -66,15 +72,28 @@ app.put('/api/tasks/:id', async (req, res) => {
         data.completed = completed;
     if (dueDate !== undefined)
         data.dueDate = dueDate ? new Date(dueDate) : null;
-    const task = await prisma.task.update({ where: { id }, data });
-    res.json(task);
+    try {
+        const task = await prisma.task.update({ where: { id }, data });
+        res.json(task);
+    }
+    catch (err) {
+        next(err);
+    }
 });
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', async (req, res, next) => {
     const id = Number(req.params.id);
-    await prisma.task.delete({ where: { id } });
-    res.status(204).end();
+    try {
+        await prisma.task.delete({ where: { id } });
+        res.status(204).end();
+    }
+    catch (err) {
+        next(err);
+    }
 });
 app.listen(PORT, () => {
     console.log(`Backend listening on http://localhost:${PORT}`);
 });
+// Not found & error handlers
+app.use(notFound);
+app.use(errorHandler);
 //# sourceMappingURL=index.js.map
